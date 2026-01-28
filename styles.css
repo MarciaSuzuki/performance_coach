@@ -825,6 +825,10 @@ body {
     transition: transform var(--transition-base);
 }
 
+.modal-content.modal-large {
+    max-width: 700px;
+}
+
 .modal.open .modal-content {
     transform: translateY(0);
 }
@@ -939,6 +943,85 @@ body {
 
 .form-hint a:hover {
     text-decoration: underline;
+}
+
+/* Voices Textarea */
+.textarea-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-xs);
+}
+
+.textarea-header label {
+    margin-bottom: 0 !important;
+}
+
+.fetch-voices-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--color-accent-light);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-md);
+    color: var(--color-accent);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.fetch-voices-btn:hover {
+    background: var(--color-accent);
+    color: white;
+}
+
+.voices-textarea {
+    width: 100%;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-warm);
+    color: var(--color-text);
+    resize: vertical;
+    transition: all var(--transition-fast);
+}
+
+.voices-textarea::placeholder {
+    color: var(--color-text-muted);
+}
+
+.voices-textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-bg);
+    background: var(--color-surface);
+}
+
+/* Voice Selection Grid */
+.voice-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-md);
+}
+
+/* Section Description */
+.section-description {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-md);
+}
+
+.section-description code {
+    background: var(--color-bg-warm);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    font-size: 0.8125rem;
 }
 
 .modal-footer {
