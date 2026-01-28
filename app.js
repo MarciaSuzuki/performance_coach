@@ -4,6 +4,8 @@
  * 
  * A web application for refining voice performances through audio feedback.
  * Supports Hindi, Indian English, and Brazilian Sertanejo Portuguese.
+ * 
+ * Version 2.0 - Improved voice management and markup placement
  */
 
 // ===================================
@@ -14,20 +16,20 @@ const CONFIG = {
     languages: {
         'hi-IN': {
             name: 'Hindi',
+            nativeName: 'हिन्दी',
             speechRecognitionLang: 'hi-IN',
-            defaultVoice: 'pMsXgVXv3BLzUgSXRplE',
             sampleText: 'आदि में परमेश्‍वर ने आकाश और पृथ्वी की सृष्टि की।'
         },
         'en-IN': {
             name: 'Indian English',
+            nativeName: 'Indian English',
             speechRecognitionLang: 'en-IN',
-            defaultVoice: 'pMsXgVXv3BLzUgSXRplE',
             sampleText: 'In the beginning, God created the heavens and the earth.'
         },
         'pt-BR': {
             name: 'Portuguese (Sertanejo)',
+            nativeName: 'Português Sertanejo',
             speechRecognitionLang: 'pt-BR',
-            defaultVoice: 'pMsXgVXv3BLzUgSXRplE',
             sampleText: 'No princípio, Deus criou os céus e a terra.'
         }
     },
@@ -36,7 +38,20 @@ const CONFIG = {
         'whisper', 'pause', 'slow', 'fast', 'emphasis',
         'peaceful', 'awe', 'warning', 'gentle', 'strong'
     ],
-    playbackSpeeds: [0.5, 0.75, 1, 1.25, 1.5, 2]
+    playbackSpeeds: [0.5, 0.75, 1, 1.25, 1.5, 2],
+    // Default ElevenLabs voices (user can add their own)
+    defaultVoices: [
+        { id: 'pMsXgVXv3BLzUgSXRplE', name: 'Aria (Female)' },
+        { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah (Female)' },
+        { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel (Male)' },
+        { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel (Female)' },
+        { id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi (Female)' },
+        { id: 'MF3mGyEYCl7XYWbV9V6O', name: 'Elli (Female)' },
+        { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh (Male)' },
+        { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold (Male)' },
+        { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam (Male)' },
+        { id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam (Male)' }
+    ]
 };
 
 // Application state
@@ -44,7 +59,7 @@ const state = {
     currentLanguage: 'hi-IN',
     sacredText: '',
     markedText: '',
-    currentVersion: 1,
+    currentVersion: 0,
     versions: [],
     audioBlob: null,
     audioUrl: null,
@@ -55,10 +70,17 @@ const state = {
     settings: {
         elevenLabsKey: '',
         anthropicKey: '',
-        voiceHindi: 'pMsXgVXv3BLzUgSXRplE',
-        voiceEnglishIN: 'pMsXgVXv3BLzUgSXRplE',
-        voicePortuguese: 'pMsXgVXv3BLzUgSXRplE',
-        ttsModel: 'eleven_multilingual_v2'
+        ttsModel: 'eleven_multilingual_v2',
+        // Voice settings per language - array of {id, name} objects
+        voicesHindi: [],
+        voicesEnglishIN: [],
+        voicesPortuguese: [],
+        // Currently selected voice ID per language
+        selectedVoiceHindi: '',
+        selectedVoiceEnglishIN: '',
+        selectedVoicePortuguese: '',
+        // Custom voices added by user
+        customVoices: []
     }
 };
 
@@ -106,10 +128,10 @@ const elements = {
     saveSettingsBtn: document.getElementById('saveSettingsBtn'),
     elevenLabsKey: document.getElementById('elevenLabsKey'),
     anthropicKey: document.getElementById('anthropicKey'),
-    voiceHindi: document.getElementById('voiceHindi'),
-    voiceEnglishIN: document.getElementById('voiceEnglishIN'),
-    voicePortuguese: document.getElementById('voicePortuguese'),
     ttsModel: document.getElementById('ttsModel'),
+    
+    // Voice settings (will be created dynamically)
+    voiceSettingsContainer: document.getElementById('voiceSettingsContainer'),
     
     // Toast
     toast: document.getElementById('toast')
@@ -207,6 +229,8 @@ function handleLanguageChange(e) {
 
 function handleTextInput() {
     state.sacredText = elements.sacredText.value;
+    // Reset marked text when original text changes
+    state.markedText = '';
     updateTextCounts();
 }
 
@@ -246,6 +270,12 @@ async function generatePerformance() {
         
         // Get voice ID for current language
         const voiceId = getVoiceForLanguage(state.currentLanguage);
+        
+        if (!voiceId) {
+            showToast('Please select a voice in Settings');
+            openSettings();
+            return;
+        }
         
         // Call ElevenLabs API
         const audioBlob = await callElevenLabsAPI(textToSpeak, voiceId);
@@ -313,13 +343,13 @@ async function callElevenLabsAPI(text, voiceId) {
 function getVoiceForLanguage(langCode) {
     switch (langCode) {
         case 'hi-IN':
-            return state.settings.voiceHindi;
+            return state.settings.selectedVoiceHindi;
         case 'en-IN':
-            return state.settings.voiceEnglishIN;
+            return state.settings.selectedVoiceEnglishIN;
         case 'pt-BR':
-            return state.settings.voicePortuguese;
+            return state.settings.selectedVoicePortuguese;
         default:
-            return state.settings.voiceHindi;
+            return state.settings.selectedVoiceHindi;
     }
 }
 
@@ -588,7 +618,7 @@ function stopRecording() {
 }
 
 // ===================================
-// Feedback Processing
+// Feedback Processing - IMPROVED
 // ===================================
 
 function sendTextFeedback() {
@@ -635,31 +665,50 @@ async function interpretFeedback(sacredText, feedback, currentMarkup) {
         return await interpretWithClaude(sacredText, feedback, currentMarkup);
     }
     
-    // Otherwise, use simple rule-based interpretation
+    // Otherwise, use improved rule-based interpretation
     return interpretWithRules(sacredText, feedback, currentMarkup);
 }
 
 async function interpretWithClaude(sacredText, feedback, currentMarkup) {
     const systemPrompt = `You are a voice performance director for sacred text recordings.
 
-Your job is to add performance markup tags to sacred text based on user feedback.
+Your job is to modify the performance markup of sacred text based on user feedback.
 
 CRITICAL RULES:
 1. NEVER change, add, or remove any words from the sacred text
-2. ONLY insert performance tags between or around words
+2. Insert performance tags at SPECIFIC POSITIONS based on the feedback
 3. Available tags: [reverent], [joyful], [sorrowful], [urgent], [whisper], [pause], [slow], [fast], [emphasis], [peaceful], [awe], [warning], [gentle], [strong]
-4. Return ONLY the marked-up text, nothing else
+4. Tags should be placed BEFORE the word or phrase they affect, not all at the beginning
+5. If feedback mentions a specific word or phrase, place the tag right before that word/phrase
+6. If feedback says "beginning", place tag at the start
+7. If feedback says "end" or "ending", place tag before the last sentence/phrase
+8. If feedback says "throughout" or "whole", you may place one tag at the beginning
+9. Return ONLY the marked-up text, no explanation
 
-Example:
-Sacred text: "In the beginning, God created the heavens and the earth."
-Feedback: "Make the beginning more reverent and pause after heavens"
-Output: [reverent] In the beginning, God created the heavens [pause] and the earth.`;
+EXAMPLES:
+- Sacred: "In the beginning, God created the heavens and the earth."
+- Feedback: "make 'heavens' more reverent"
+- Output: In the beginning, God created the [reverent] heavens and the earth.
 
+- Sacred: "In the beginning, God created the heavens and the earth."
+- Feedback: "add a pause after heavens"
+- Output: In the beginning, God created the heavens [pause] and the earth.
+
+- Sacred: "In the beginning, God created the heavens and the earth."
+- Feedback: "whisper at the end"
+- Output: In the beginning, God created the heavens and [whisper] the earth.
+
+- Sacred: "In the beginning, God created the heavens and the earth."
+- Feedback: "make the whole thing joyful"
+- Output: [joyful] In the beginning, God created the heavens and the earth.`;
+
+    const baseText = currentMarkup || sacredText;
+    
     const userMessage = `Sacred text: "${sacredText}"
 ${currentMarkup ? `Current markup: "${currentMarkup}"` : ''}
-Feedback: "${feedback}"
+User feedback: "${feedback}"
 
-Apply the feedback and return ONLY the marked-up text:`;
+Apply the feedback by placing tags at the appropriate positions. Return ONLY the marked-up text:`;
 
     try {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -693,62 +742,122 @@ Apply the feedback and return ONLY the marked-up text:`;
 }
 
 function interpretWithRules(sacredText, feedback, currentMarkup) {
+    // Use the current markup as base, or start with original text
     let result = currentMarkup || sacredText;
     const feedbackLower = feedback.toLowerCase();
     
-    // Simple keyword-based tag insertion
+    // Remove any existing tags to get clean text for analysis
+    const cleanText = sacredText.replace(/\[[^\]]+\]/g, '').trim();
+    const words = cleanText.split(/\s+/);
+    
+    // Determine which tag to apply
     const tagMappings = {
-        'reverent': ['reverent', 'reverence', 'respectful', 'solemn', 'holy'],
-        'joyful': ['joyful', 'happy', 'excited', 'celebration', 'joy'],
-        'sorrowful': ['sorrowful', 'sad', 'grief', 'lament', 'mourning'],
-        'urgent': ['urgent', 'fast', 'quick', 'hurry', 'pressing'],
-        'whisper': ['whisper', 'soft', 'quiet', 'gentle voice'],
-        'pause': ['pause', 'stop', 'break', 'wait'],
-        'slow': ['slow', 'slower', 'carefully', 'deliberate'],
-        'emphasis': ['emphasis', 'stress', 'highlight', 'important'],
-        'peaceful': ['peaceful', 'calm', 'serene', 'tranquil'],
-        'awe': ['awe', 'wonder', 'amazed', 'marvel']
+        'reverent': ['reverent', 'reverence', 'respectful', 'solemn', 'holy', 'sacred'],
+        'joyful': ['joyful', 'happy', 'excited', 'celebration', 'joy', 'cheerful'],
+        'sorrowful': ['sorrowful', 'sad', 'grief', 'lament', 'mourning', 'melancholy'],
+        'urgent': ['urgent', 'pressing', 'hurry', 'important', 'critical'],
+        'whisper': ['whisper', 'soft', 'quiet', 'gentle voice', 'softly'],
+        'pause': ['pause', 'stop', 'break', 'wait', 'silence'],
+        'slow': ['slow', 'slower', 'carefully', 'deliberate', 'drawn out'],
+        'fast': ['fast', 'faster', 'quick', 'rapid', 'speed up'],
+        'emphasis': ['emphasis', 'stress', 'highlight', 'emphasize', 'important'],
+        'peaceful': ['peaceful', 'calm', 'serene', 'tranquil', 'restful'],
+        'awe': ['awe', 'wonder', 'amazed', 'marvel', 'astonished']
     };
     
-    // Find which tags to apply
-    let tagsToApply = [];
+    // Find which tag to apply
+    let tagToApply = null;
     for (const [tag, keywords] of Object.entries(tagMappings)) {
         if (keywords.some(kw => feedbackLower.includes(kw))) {
-            tagsToApply.push(tag);
+            tagToApply = tag;
+            break;
         }
     }
     
-    // If no specific tags found, try to detect position instructions
-    if (tagsToApply.length === 0) {
-        // Default to adding emphasis
-        tagsToApply = ['emphasis'];
+    if (!tagToApply) {
+        tagToApply = 'emphasis'; // Default
     }
     
+    const tag = `[${tagToApply}]`;
+    
+    // Determine WHERE to place the tag
     // Check for position keywords
-    const atBeginning = feedbackLower.includes('beginning') || feedbackLower.includes('start');
-    const atEnd = feedbackLower.includes('end') || feedbackLower.includes('ending');
-    const throughout = feedbackLower.includes('throughout') || feedbackLower.includes('whole') || feedbackLower.includes('entire');
+    const atBeginning = feedbackLower.includes('beginning') || feedbackLower.includes('start') || feedbackLower.includes('first');
+    const atEnd = feedbackLower.includes('end') || feedbackLower.includes('ending') || feedbackLower.includes('last');
+    const throughout = feedbackLower.includes('throughout') || feedbackLower.includes('whole') || feedbackLower.includes('entire') || feedbackLower.includes('all');
     
-    // Apply tags
-    const tag = `[${tagsToApply[0]}]`;
+    // Check if feedback mentions specific words from the text
+    let targetWord = null;
+    let targetIndex = -1;
     
-    if (throughout) {
-        result = `${tag} ${result}`;
-    } else if (atBeginning) {
-        // Add tag at the very beginning
-        result = `${tag} ${result}`;
-    } else if (atEnd) {
-        // Add tag before the last sentence/phrase
-        const lastPeriod = result.lastIndexOf('.');
-        if (lastPeriod > 0) {
-            result = result.substring(0, lastPeriod) + ` ${tag}` + result.substring(lastPeriod);
-        } else {
-            result = `${result} ${tag}`;
-        }
-    } else {
-        // Add at beginning by default
-        result = `${tag} ${result}`;
+    // Look for quoted words or specific word mentions
+    const quotedMatch = feedback.match(/['"]([^'"]+)['"]/);
+    if (quotedMatch) {
+        targetWord = quotedMatch[1].toLowerCase();
     }
+    
+    // Also check for "at X" or "before X" or "after X" patterns
+    const atMatch = feedbackLower.match(/(?:at|before|near|around)\s+['"]?(\w+)['"]?/);
+    if (atMatch && !targetWord) {
+        targetWord = atMatch[1];
+    }
+    
+    // Find the target word in the clean text
+    if (targetWord) {
+        const wordsLower = words.map(w => w.toLowerCase().replace(/[.,!?;:]/g, ''));
+        targetIndex = wordsLower.findIndex(w => w.includes(targetWord) || targetWord.includes(w));
+    }
+    
+    // Now apply the tag at the right position
+    if (targetIndex >= 0) {
+        // Insert tag before the specific word
+        const resultWords = result.split(/\s+/);
+        // Find corresponding position in result (which may have existing tags)
+        let wordCount = 0;
+        let insertPosition = 0;
+        
+        for (let i = 0; i < resultWords.length; i++) {
+            if (!resultWords[i].startsWith('[')) {
+                if (wordCount === targetIndex) {
+                    insertPosition = i;
+                    break;
+                }
+                wordCount++;
+            }
+        }
+        
+        resultWords.splice(insertPosition, 0, tag);
+        result = resultWords.join(' ');
+        
+    } else if (atEnd) {
+        // Find the last sentence or phrase
+        const sentences = result.split(/(?<=[.!?।])\s+/);
+        if (sentences.length > 1) {
+            sentences[sentences.length - 1] = tag + ' ' + sentences[sentences.length - 1];
+            result = sentences.join(' ');
+        } else {
+            // Single sentence - add before last few words
+            const resultWords = result.split(/\s+/);
+            const insertPos = Math.max(0, resultWords.length - 3);
+            resultWords.splice(insertPos, 0, tag);
+            result = resultWords.join(' ');
+        }
+        
+    } else if (atBeginning || throughout) {
+        // Add at the very beginning (but only if not already there with same tag)
+        if (!result.startsWith(tag)) {
+            result = tag + ' ' + result;
+        }
+        
+    } else {
+        // No clear position - add at beginning as default
+        if (!result.startsWith(tag)) {
+            result = tag + ' ' + result;
+        }
+    }
+    
+    // Clean up any double spaces
+    result = result.replace(/\s+/g, ' ').trim();
     
     return result;
 }
@@ -807,7 +916,7 @@ function escapeHtml(text) {
 }
 
 // ===================================
-// Settings Management
+// Settings Management - IMPROVED
 // ===================================
 
 function loadSettings() {
@@ -820,16 +929,48 @@ function loadSettings() {
             console.error('Failed to load settings:', e);
         }
     }
+    
+    // Initialize with default voices if empty
+    if (!state.settings.customVoices || state.settings.customVoices.length === 0) {
+        state.settings.customVoices = [...CONFIG.defaultVoices];
+    }
 }
 
 function saveSettings() {
     // Get values from form
     state.settings.elevenLabsKey = elements.elevenLabsKey.value.trim();
     state.settings.anthropicKey = elements.anthropicKey.value.trim();
-    state.settings.voiceHindi = elements.voiceHindi.value;
-    state.settings.voiceEnglishIN = elements.voiceEnglishIN.value;
-    state.settings.voicePortuguese = elements.voicePortuguese.value;
     state.settings.ttsModel = elements.ttsModel.value;
+    
+    // Get selected voices
+    const voiceHindiSelect = document.getElementById('voiceHindi');
+    const voiceEnglishINSelect = document.getElementById('voiceEnglishIN');
+    const voicePortugueseSelect = document.getElementById('voicePortuguese');
+    
+    if (voiceHindiSelect) state.settings.selectedVoiceHindi = voiceHindiSelect.value;
+    if (voiceEnglishINSelect) state.settings.selectedVoiceEnglishIN = voiceEnglishINSelect.value;
+    if (voicePortugueseSelect) state.settings.selectedVoicePortuguese = voicePortugueseSelect.value;
+    
+    // Get custom voices from the text area
+    const customVoicesTextarea = document.getElementById('customVoicesTextarea');
+    if (customVoicesTextarea) {
+        const lines = customVoicesTextarea.value.trim().split('\n').filter(line => line.trim());
+        const newCustomVoices = [];
+        
+        for (const line of lines) {
+            // Parse format: "Voice Name | voice_id" or just "voice_id"
+            const parts = line.split('|').map(p => p.trim());
+            if (parts.length === 2) {
+                newCustomVoices.push({ name: parts[0], id: parts[1] });
+            } else if (parts.length === 1 && parts[0]) {
+                newCustomVoices.push({ name: parts[0], id: parts[0] });
+            }
+        }
+        
+        if (newCustomVoices.length > 0) {
+            state.settings.customVoices = newCustomVoices;
+        }
+    }
     
     // Save to localStorage
     localStorage.setItem('voicePerformanceStudioSettings', JSON.stringify(state.settings));
@@ -842,17 +983,105 @@ function openSettings() {
     // Populate form
     elements.elevenLabsKey.value = state.settings.elevenLabsKey || '';
     elements.anthropicKey.value = state.settings.anthropicKey || '';
-    elements.voiceHindi.value = state.settings.voiceHindi;
-    elements.voiceEnglishIN.value = state.settings.voiceEnglishIN;
-    elements.voicePortuguese.value = state.settings.voicePortuguese;
     elements.ttsModel.value = state.settings.ttsModel;
     
+    // Populate voice selectors
+    populateVoiceSelectors();
+    
+    // Populate custom voices textarea
+    const customVoicesTextarea = document.getElementById('customVoicesTextarea');
+    if (customVoicesTextarea && state.settings.customVoices) {
+        customVoicesTextarea.value = state.settings.customVoices
+            .map(v => `${v.name} | ${v.id}`)
+            .join('\n');
+    }
+    
     elements.settingsModal.classList.add('open');
+}
+
+function populateVoiceSelectors() {
+    const voices = state.settings.customVoices || CONFIG.defaultVoices;
+    
+    const voiceOptions = voices.map(v => 
+        `<option value="${v.id}">${v.name}</option>`
+    ).join('');
+    
+    const voiceHindiSelect = document.getElementById('voiceHindi');
+    const voiceEnglishINSelect = document.getElementById('voiceEnglishIN');
+    const voicePortugueseSelect = document.getElementById('voicePortuguese');
+    
+    if (voiceHindiSelect) {
+        voiceHindiSelect.innerHTML = voiceOptions;
+        voiceHindiSelect.value = state.settings.selectedVoiceHindi || voices[0]?.id || '';
+    }
+    
+    if (voiceEnglishINSelect) {
+        voiceEnglishINSelect.innerHTML = voiceOptions;
+        voiceEnglishINSelect.value = state.settings.selectedVoiceEnglishIN || voices[0]?.id || '';
+    }
+    
+    if (voicePortugueseSelect) {
+        voicePortugueseSelect.innerHTML = voiceOptions;
+        voicePortugueseSelect.value = state.settings.selectedVoicePortuguese || voices[0]?.id || '';
+    }
 }
 
 function closeSettings() {
     elements.settingsModal.classList.remove('open');
 }
+
+// ===================================
+// Fetch ElevenLabs Voices
+// ===================================
+
+async function fetchElevenLabsVoices() {
+    if (!state.settings.elevenLabsKey) {
+        showToast('Please enter your ElevenLabs API key first');
+        return;
+    }
+    
+    try {
+        showToast('Fetching your voices...');
+        
+        const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+            headers: {
+                'xi-api-key': state.settings.elevenLabsKey
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Update custom voices
+        state.settings.customVoices = data.voices.map(v => ({
+            id: v.voice_id,
+            name: v.name
+        }));
+        
+        // Update the textarea
+        const customVoicesTextarea = document.getElementById('customVoicesTextarea');
+        if (customVoicesTextarea) {
+            customVoicesTextarea.value = state.settings.customVoices
+                .map(v => `${v.name} | ${v.id}`)
+                .join('\n');
+        }
+        
+        // Refresh voice selectors
+        populateVoiceSelectors();
+        
+        showToast(`Found ${data.voices.length} voices!`);
+        
+    } catch (error) {
+        console.error('Error fetching voices:', error);
+        showToast(`Error: ${error.message}`);
+    }
+}
+
+// Make it available globally for the button
+window.fetchElevenLabsVoices = fetchElevenLabsVoices;
 
 // ===================================
 // Version History
