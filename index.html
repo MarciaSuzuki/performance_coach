@@ -54,7 +54,7 @@
                         id="sacredText" 
                         class="sacred-text-input"
                         placeholder="Enter the sacred text here. The words will never be changed — only the performance will be refined."
-                    >आदि में परमेश्‍वर ने आकाश और पृथ्वी की सृष्टि की। और पृथ्वी बेडौल और सुनसान थी, और गहरे जल के ऊपर अंधियारा था।</textarea>
+                    >आदि में परमेश्‍वर ने आकाश और पृथ्वी की सृष्टि की।</textarea>
                     <div class="text-info">
                         <span id="charCount">0 characters</span>
                         <span class="separator">·</span>
@@ -67,7 +67,7 @@
             <section class="panel performance-panel">
                 <div class="panel-header">
                     <h2>Performance</h2>
-                    <span class="version-badge" id="versionBadge">Version 1</span>
+                    <span class="version-badge" id="versionBadge">Version 0</span>
                 </div>
                 
                 <div class="panel-content">
@@ -155,8 +155,9 @@
                         </button>
                         <p class="recording-hint">
                             Describe how you want the performance to change.<br>
-                            <em>"Make the beginning more reverent"</em><br>
-                            <em>"Slow down at 'heavens and earth'"</em>
+                            <em>"Make 'heavens' more reverent"</em><br>
+                            <em>"Add a pause after 'earth'"</em><br>
+                            <em>"Whisper at the end"</em>
                         </p>
                     </div>
 
@@ -196,27 +197,12 @@
                 </div>
             </section>
         </main>
-
-        <!-- Version History Sidebar (hidden by default) -->
-        <aside class="version-sidebar" id="versionSidebar">
-            <div class="sidebar-header">
-                <h3>Version History</h3>
-                <button id="closeSidebarBtn" class="close-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 6L6 18M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-            <div id="versionList" class="version-list">
-                <!-- Versions will be populated dynamically -->
-            </div>
-        </aside>
     </div>
 
     <!-- Settings Modal -->
     <div class="modal" id="settingsModal">
         <div class="modal-backdrop"></div>
-        <div class="modal-content">
+        <div class="modal-content modal-large">
             <div class="modal-header">
                 <h2>Settings</h2>
                 <button class="close-btn" id="closeSettingsBtn">
@@ -226,6 +212,7 @@
                 </button>
             </div>
             <div class="modal-body">
+                <!-- API Keys Section -->
                 <div class="settings-section">
                     <h3>API Configuration</h3>
                     <div class="form-group">
@@ -236,45 +223,74 @@
                     <div class="form-group">
                         <label for="anthropicKey">Anthropic API Key (Optional)</label>
                         <input type="password" id="anthropicKey" placeholder="Enter your API key">
-                        <p class="form-hint">For advanced feedback interpretation. Get your key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+                        <p class="form-hint">For smarter feedback interpretation. Get your key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
                     </div>
                 </div>
+
+                <!-- Voice Management Section -->
                 <div class="settings-section">
-                    <h3>Voice Selection</h3>
+                    <h3>Your Voices</h3>
+                    <p class="section-description">Add your ElevenLabs voices below. Format: <code>Voice Name | voice_id</code> (one per line)</p>
+                    
                     <div class="form-group">
-                        <label for="voiceHindi">Hindi Voice</label>
-                        <select id="voiceHindi">
-                            <option value="pMsXgVXv3BLzUgSXRplE">Aria (Female)</option>
-                            <option value="EXAVITQu4vr4xnSDxMaL">Sarah (Female)</option>
-                            <option value="onwK4e9ZLuTAKqWW03F9">Daniel (Male)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="voiceEnglishIN">Indian English Voice</label>
-                        <select id="voiceEnglishIN">
-                            <option value="pMsXgVXv3BLzUgSXRplE">Aria (Female)</option>
-                            <option value="EXAVITQu4vr4xnSDxMaL">Sarah (Female)</option>
-                            <option value="onwK4e9ZLuTAKqWW03F9">Daniel (Male)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="voicePortuguese">Portuguese (Sertanejo) Voice</label>
-                        <select id="voicePortuguese">
-                            <option value="pMsXgVXv3BLzUgSXRplE">Aria (Female)</option>
-                            <option value="EXAVITQu4vr4xnSDxMaL">Sarah (Female)</option>
-                            <option value="onwK4e9ZLuTAKqWW03F9">Daniel (Male)</option>
-                        </select>
+                        <div class="textarea-header">
+                            <label for="customVoicesTextarea">Voice List</label>
+                            <button type="button" class="fetch-voices-btn" onclick="fetchElevenLabsVoices()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                    <path d="M21 12a9 9 0 11-9-9"/>
+                                    <path d="M21 3v6h-6"/>
+                                </svg>
+                                Fetch My Voices
+                            </button>
+                        </div>
+                        <textarea 
+                            id="customVoicesTextarea" 
+                            class="voices-textarea"
+                            placeholder="Aria (Female) | pMsXgVXv3BLzUgSXRplE
+Sarah (Female) | EXAVITQu4vr4xnSDxMaL
+My Custom Voice | your_voice_id_here"
+                            rows="6"
+                        ></textarea>
+                        <p class="form-hint">Click "Fetch My Voices" to automatically load all voices from your ElevenLabs account.</p>
                     </div>
                 </div>
+                
+                <!-- Voice Selection Per Language -->
+                <div class="settings-section">
+                    <h3>Voice Selection by Language</h3>
+                    <div class="voice-selection-grid">
+                        <div class="form-group">
+                            <label for="voiceHindi">🇮🇳 Hindi Voice</label>
+                            <select id="voiceHindi">
+                                <option value="">Select a voice...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="voiceEnglishIN">🇮🇳 Indian English Voice</label>
+                            <select id="voiceEnglishIN">
+                                <option value="">Select a voice...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="voicePortuguese">🇧🇷 Portuguese (Sertanejo) Voice</label>
+                            <select id="voicePortuguese">
+                                <option value="">Select a voice...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TTS Model Section -->
                 <div class="settings-section">
                     <h3>TTS Model</h3>
                     <div class="form-group">
                         <label for="ttsModel">Model</label>
                         <select id="ttsModel">
-                            <option value="eleven_multilingual_v2">Multilingual v2 (Best quality)</option>
-                            <option value="eleven_turbo_v2_5">Turbo v2.5 (Faster)</option>
-                            <option value="eleven_v3">Eleven v3 (Most expressive)</option>
+                            <option value="eleven_multilingual_v2">Multilingual v2 (Best for non-English)</option>
+                            <option value="eleven_turbo_v2_5">Turbo v2.5 (Faster, good quality)</option>
+                            <option value="eleven_monolingual_v1">Monolingual v1 (English only)</option>
                         </select>
+                        <p class="form-hint">Multilingual v2 is recommended for Hindi and Portuguese.</p>
                     </div>
                 </div>
             </div>
